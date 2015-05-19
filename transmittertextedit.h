@@ -21,7 +21,8 @@ public:
 public slots:
     void characterSent(QChar);
     void prepareNextCharacter();
-    //void modemStateChanged(Digital::Internal::Modem::State);
+    void txChanged(bool);
+    void modemInitialized(bool);
 
 private:
     void processText();

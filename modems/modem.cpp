@@ -50,7 +50,11 @@ Modem::Modem(unsigned capability, QObject* parent)
       m_deviceOut(0),
       m_receiver(0),
       m_transmitter(0),
-      m_thread(0)
+      m_thread(0),
+      m_metric(0),
+      m_nextCharacter(0),
+      m_hasNextCharacter(false),
+      m_autoMode(false)
 {
     m_baseThread = thread();
 }
@@ -126,6 +130,8 @@ bool Modem::init(AudioDeviceIn* deviceIn, AudioDeviceOut* deviceOut)
     while (m_internalState != INTSTATE_READY)
         m_stateChangedCond.wait(&m_stateChangedMutex);
 
+    emit initialized(true);
+
     return true;
 }
 
@@ -136,6 +142,7 @@ void Modem::restart()
     m_hasInputData = false;
     m_nextCharacter = 0;
     m_hasNextCharacter = false;
+    m_autoMode = false;
 
     iRestart();
 }
@@ -181,6 +188,8 @@ void Modem::shutdown()
 
     iShutdown();
     setInternalState(INTSTATE_PREINIT);
+
+    emit initialized(false);
 }
 
 void Modem::setFrequency(double frequency)
@@ -280,8 +289,23 @@ void Modem::process()
 
 bool Modem::startTx()
 {
-    if (m_transmitter && hasCapability(CAP_TX)) {
+    if (m_transmitter && hasCapability(CAP_TX) && !isTransmitting()) {
         QMutexLocker lock(&m_waitMutex);
+        m_autoMode = false;
+        setInternalState(INTSTATE_TX_STARTING);
+        m_waitForData.wakeAll();
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Modem::startTxAuto()
+{
+    if (m_transmitter && hasCapability(CAP_TX) && !isTransmitting()) {
+        QMutexLocker lock(&m_waitMutex);
+        m_autoMode = true;
         setInternalState(INTSTATE_TX_STARTING);
         m_waitForData.wakeAll();
 
@@ -293,7 +317,10 @@ bool Modem::startTx()
 
 bool Modem::setNextCharacter(char character)
 {
-    if (!isTransmitting() || m_hasNextCharacter)
+    /*if (!isTransmitting() || m_hasNextCharacter)
+        return false;*/
+
+    if (m_hasNextCharacter)
         return false;
 
     QMutexLocker lock(&m_nextCharacterMutex);
@@ -305,8 +332,8 @@ bool Modem::setNextCharacter(char character)
 
 bool Modem::clearNextCharacter()
 {
-    if (!isTransmitting())
-        return false;
+    /*if (!isTransmitting())
+        return false;*/
 
     QMutexLocker lock(&m_nextCharacterMutex);
     m_hasNextCharacter = false;
@@ -383,6 +410,11 @@ bool Modem::isReceiving() const
 
 bool Modem::getNextChar(QChar& c)
 {
+    if (m_autoMode && !m_hasNextCharacter) {
+        m_requestedState = INTSTATE_TX_STOPPING;
+        return false;
+    }
+
     emit requestNextCharacter();
 
     QMutexLocker lock(&m_nextCharacterMutex);

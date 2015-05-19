@@ -96,21 +96,30 @@ void MainWindow::on_cbInputDevices_currentIndexChanged(int index)
     ui->txtRcvd->setEnabled(false);
 }
 
+void MainWindow::on_pbAuto_clicked()
+{
+    if (m_modem && m_modem->startTxAuto()) {
+        ui->pbAuto->setEnabled(false);
+        ui->pbStartOutput->setEnabled(false);
+        ui->pbStopOutput->setEnabled(true);
+    }
+}
+
 void MainWindow::on_pbStartOutput_clicked()
 {
     if (m_modem && m_modem->startTx()) {
+        ui->pbAuto->setEnabled(false);
         ui->pbStartOutput->setEnabled(false);
         ui->pbStopOutput->setEnabled(true);
-        ui->txtSend->setEnabled(true);
     }
 }
 
 void MainWindow::on_pbStopOutput_clicked()
 {
     if (m_modem && m_modem->stopTx()) {
+        ui->pbAuto->setEnabled(true);
         ui->pbStartOutput->setEnabled(true);
         ui->pbStopOutput->setEnabled(false);
-        ui->txtSend->setEnabled(false);
     }
 }
 
@@ -136,9 +145,10 @@ void MainWindow::on_cbOutputDevices_currentIndexChanged(int index)
 
     qDebug() << "initialized output device: " << m_outDevice->getDeviceName();
 
+    ui->pbAuto->setEnabled(true);
     ui->pbStartOutput->setEnabled(true);
     ui->pbStopOutput->setEnabled(false);
-    ui->txtSend->setEnabled(false);
+    ui->txtSend->setEnabled(true);
 }
 
 void MainWindow::characterReceived(char character)

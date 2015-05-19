@@ -104,6 +104,7 @@ public slots:
 
     // transmitting
     bool startTx();
+    bool startTxAuto(); // automatically stops transmitting after no more characters are received
     bool setNextCharacter(char);
     bool clearNextCharacter();
     bool stopTx();
@@ -120,6 +121,10 @@ signals:
     /// \brief Emitted when a character is prepared for sending (i.e. it is now being processed and
     /// will be sent to the soundcard soon). At this time, a new character can be set via setNextCharacter().
     void requestNextCharacter();
+
+    void txChanged(bool txOn);
+    void rxChanged(bool rxOn);
+    void initialized(bool);
 
     void received(char);
 
@@ -180,6 +185,7 @@ private:
     QMutex              m_nextCharacterMutex;
     bool                m_hasNextCharacter;
     int                 m_nextCharacter;
+    bool                m_autoMode;
 
     QAudioFormat    m_format;
     unsigned        m_capability;

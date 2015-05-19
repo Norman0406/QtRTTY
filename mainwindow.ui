@@ -115,6 +115,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="pbAuto">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Auto</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="pbStartOutput">
         <property name="enabled">
          <bool>false</bool>

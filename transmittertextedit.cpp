@@ -28,11 +28,8 @@ void TransmitterTextEdit::registerModem(Digital::Internal::Modem* modem)
     m_modem = modem;
     connect(m_modem, &Modem::requestNextCharacter, this, &TransmitterTextEdit::prepareNextCharacter);
     connect(m_modem, &Modem::sent, this, &TransmitterTextEdit::characterSent);
-    //connect(m_modem, &Modem::stateChanged, this, &TransmitterTextEdit::modemStateChanged);
-
-    // TEMP
-    //m_textPrepared = "Hallo";
-    //updateText();
+    connect(m_modem, &Modem::txChanged, this, &TransmitterTextEdit::txChanged);
+    connect(m_modem, &Modem::initialized, this, &TransmitterTextEdit::modemInitialized);
 }
 
 void TransmitterTextEdit::unregisterModem()
@@ -40,19 +37,27 @@ void TransmitterTextEdit::unregisterModem()
     if (m_modem) {
         disconnect(m_modem, &Modem::requestNextCharacter, this, &TransmitterTextEdit::prepareNextCharacter);
         disconnect(m_modem, &Modem::sent, this, &TransmitterTextEdit::characterSent);
-        //disconnect(m_modem, &Modem::stateChanged, this, &TransmitterTextEdit::modemStateChanged);
+        disconnect(m_modem, &Modem::txChanged, this, &TransmitterTextEdit::txChanged);
+        disconnect(m_modem, &Modem::initialized, this, &TransmitterTextEdit::modemInitialized);
         m_modem = 0;
     }
 }
 
-/*void TransmitterTextEdit::modemStateChanged(Digital::Internal::Modem::State state)
+void TransmitterTextEdit::modemInitialized(bool init)
 {
-    Q_UNUSED(state);
-
-    if (!m_modem->isTransmitting()) {
-        clear();
+    // UNDONE
+    if (init) {
+        // TEMP
+        m_textPrepared = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
     }
-}*/
+    prepareNextCharacter();
+}
+
+void TransmitterTextEdit::txChanged(bool txOn)
+{
+    if (!txOn)
+        clear();
+}
 
 void TransmitterTextEdit::clear()
 {
@@ -75,7 +80,7 @@ void TransmitterTextEdit::processText()
         return;
 
     m_textPrepared = remaining;
-    updateText();
+    prepareNextCharacter();
 }
 
 void TransmitterTextEdit::prepareNextCharacter()
@@ -85,10 +90,16 @@ void TransmitterTextEdit::prepareNextCharacter()
         if (m_modem->setNextCharacter(nextChar)) {
             m_textPrepared = m_textPrepared.mid(1, m_textPrepared.length() - 1);
             m_textInProgress += QChar(nextChar);
-
-            updateText();
         }
     }
+    else {
+        if (m_textSent.length() == 0) {
+            m_textInProgress.clear();
+            m_modem->clearNextCharacter();
+        }
+    }
+
+    updateText();
 }
 
 void TransmitterTextEdit::TransmitterTextEdit::characterSent(QChar character)
@@ -103,6 +114,9 @@ void TransmitterTextEdit::TransmitterTextEdit::characterSent(QChar character)
 
 void TransmitterTextEdit::updateText()
 {
+    int selectionStart = textCursor().selectionStart();
+    int selectionEnd = textCursor().selectionEnd();
+
     QTextCursor currentCursor = textCursor();
 
     QColor sentColor(Qt::red);
@@ -110,6 +124,7 @@ void TransmitterTextEdit::updateText()
     QColor unsentColor(Qt::black);
 
     QString html;
+
     if (m_textSent.length() > 0) {
         html += "<s><font color=%1>";
 
@@ -159,5 +174,8 @@ void TransmitterTextEdit::updateText()
     }
 
     setHtml(html);
+
+    currentCursor.setPosition(selectionStart);
+    currentCursor.setPosition(selectionEnd, QTextCursor::KeepAnchor);
     setTextCursor(currentCursor);
 }

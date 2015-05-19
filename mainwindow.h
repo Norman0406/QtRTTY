@@ -29,6 +29,7 @@ private slots:
     void on_pbStartInput_clicked();
     void on_pbStopInput_clicked();
     void on_cbInputDevices_currentIndexChanged(int index);
+    void on_pbAuto_clicked();
     void on_pbStartOutput_clicked();
     void on_pbStopOutput_clicked();
     void on_cbOutputDevices_currentIndexChanged(int index);
